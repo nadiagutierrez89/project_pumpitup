@@ -1,0 +1,6 @@
+keras 
+jax 
+matplotlib 
+numpy 
+scikit-learn
+jupyter
