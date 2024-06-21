@@ -1,4 +1,4 @@
-###Script para buscar Name, BPM, Offset y Pasos (measures) en Songs SSC de PIU v1.0 --21/06/24
+###Script para buscar Name, BPM, Offset y Pasos (measures) en Songs SSC de PIU v1.1 --21/06/24
 import os
 import re
 import csv
@@ -7,13 +7,14 @@ import csv
 # Define la ruta de la carpeta "songs" y el archivo CSV de salida
 songs_directory = 'D:\Songs'
 output_csv = 'resultados.csv'
+filtered_csv = 'resultado_filtrado.csv'
 
 # Define las expresiones regulares para cada campo
 regex_patterns = {
     'title': re.compile(r'#TITLE:\s*([^;]+)\s*;'),
     'artist': re.compile(r'#ARTIST:\s*([^;]+)\s*;'),
     'offset': re.compile(r'#OFFSET:\s*([-+]?\d*\.\d+|\d+)\s*;'),
-    'bpms': re.compile(r'#BPMS:\s*0\.000=([-+]?\d*\.\d+|\d+)\s*;'),
+    'bpms': re.compile(r'#BPMS:\s*0\.000=([-+]?\d*\.\d+|\d+)\s*[;,]'),
     'music': re.compile(r'#MUSIC:\s*([^;]+)\s*;'),
     'time_signatures': re.compile(r'#TIMESIGNATURES:\s*0\.000=([^\n;]+)\s*;'),
     'tick_counts': re.compile(r'#TICKCOUNTS:\s*0\.000=([^\n;]+)\s*;')
@@ -33,6 +34,9 @@ def clean_value(value):
 def process_ssc_file(file_path):
     fields = {'file_name': clean_value(os.path.splitext(os.path.basename(file_path))[0])}
     try:
+        # Obtener el directorio padre del archivo .ssc
+        directory_path = os.path.dirname(file_path)
+
         with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
 
@@ -49,7 +53,7 @@ def process_ssc_file(file_path):
                     if '|' in notes_block or '}' in notes_block:
                         fields['notes'] = 'Notas con simbolos'
                     else:
-                        # Eliminar líneas que comiencen con //measure
+                        # Eliminar líneas que contienen la palabra "measure"
                         notes_lines = notes_block.split('\n')
                         filtered_lines = [line for line in notes_lines if 'measure' not in line]
                         cleaned_notes = ''.join(filtered_lines)
@@ -60,21 +64,33 @@ def process_ssc_file(file_path):
                         formatted_notes = '[' + ';'.join(grouped_notes) + ']'
                         fields['notes'] = formatted_notes
                 else:
-                    fields['notes'] = 'No se encontró dato'
+                    fields['notes'] = 'No se encontro dato'
             else:
-                fields['notes'] = 'No se encontró dato'
+                fields['notes'] = 'No se encontro dato'
 
             # Capturar otros campos regulares
             for field, pattern in regex_patterns.items():
                 match = pattern.search(content)
-                value = match.group(1) if match else 'No se encontró dato'
-                if field in ['title', 'artist', 'music', 'time_signatures', 'tick_counts']:
+                value = match.group(1) if match else 'No se encontro dato'
+                if field in ['path','file_name', 'title', 'artist', 'offset', 'bpms', 'music', 'time_signatures', 'tick_counts', 'notes']:
                     value = clean_value(value)
-                fields[field] = value
+                    if field == 'music' and value.startswith('../'):
+                        value = value[3:]  # Eliminar '../' al inicio si existe
+                    fields[field] = value
+
+            # Construir el campo 'path' utilizando 'music'
+            if 'music' in fields:
+                music_value = fields['music']
+                if music_value:
+                    if music_value.startswith('../'):
+                        music_value = music_value[3:]  # Eliminar '../' al inicio si existe
+                    fields['path'] = os.path.normpath(os.path.join(directory_path, music_value))
+
     except Exception as e:
         print(f"Error al leer el archivo {file_path}: {e}")
         fields.update({field: 'Error al leer el archivo' for field in regex_patterns})
     return fields
+
 
 # Define la función para buscar archivos .ssc y procesarlos
 def find_and_process_ssc_files(directory):
@@ -106,7 +122,7 @@ def save_to_csv(data, output_path):
 
     try:
         with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = ['file_name', 'title', 'artist', 'offset', 'bpms', 'music', 'time_signatures', 'tick_counts', 'notes']
+            fieldnames = ['path','file_name', 'title', 'artist', 'offset', 'bpms', 'music', 'time_signatures', 'tick_counts', 'notes']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             for row in data:
@@ -121,3 +137,33 @@ def save_to_csv(data, output_path):
 # Procesa los archivos y guarda los resultados
 results = find_and_process_ssc_files(songs_directory)
 save_to_csv(results, output_csv)
+
+# Función para filtrar los resultados
+def filter_results(data):
+    filtered_data = []
+    for row in data:
+        if not any(row[field] in ["No se encontro dato", "Notas con simbolos"] for field in ['bpms', 'offset', 'path', 'notes']):
+            filtered_data.append(row)
+    return filtered_data
+
+# Función para guardar los resultados filtrados en un archivo CSV
+def save_filtered_to_csv(data, output_path):
+    if not data:
+        print("No hay datos para guardar en el CSV filtrado.")
+        return
+
+    try:
+        with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
+            fieldnames = ['path','file_name', 'title', 'artist', 'offset', 'bpms', 'music', 'time_signatures', 'tick_counts', 'notes']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for row in data:
+                writer.writerow(row)
+
+        print(f"CSV filtrado guardado en: {output_path}")
+    except Exception as e:
+        print(f"Error al guardar el archivo CSV filtrado: {e}")
+
+# Filtrar los resultados y guardar en el CSV filtrado
+filtered_results = filter_results(results)
+save_filtered_to_csv(filtered_results, filtered_csv)
