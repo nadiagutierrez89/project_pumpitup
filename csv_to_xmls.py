@@ -10,6 +10,6 @@ def csv_to_excel(csv_file, excel_file):
         print(f"Error al convertir CSV a Excel: {e}")
 
 # Llama a la función para convertir el archivo CSV generado a Excel
-csv_file = 'resultado_filtrado.csv'
-excel_file = 'resultado_filtrado.xlsx'
+csv_file = 'resultado_con_cant_notas.csv'
+excel_file = 'resultado_filtrado_con_cant_notas.xlsx'
 csv_to_excel(csv_file, excel_file)
