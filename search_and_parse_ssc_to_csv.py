@@ -14,7 +14,7 @@ regex_patterns = {
     'title': re.compile(r'#TITLE:\s*([^;]+)\s*;'),
     'artist': re.compile(r'#ARTIST:\s*([^;]+)\s*;'),
     'offset': re.compile(r'#OFFSET:\s*([-+]?\d*\.\d+|\d+)\s*;'),
-    'bpms': re.compile(r'#BPMS:\s*0\.000=([-+]?\d*\.\d+|\d+)\s*[;,]'),
+    'bpms': re.compile(r'#BPMS:\s*0\.000=([-+]?\d*\.\d+|\d+)\s*;'),
     'music': re.compile(r'#MUSIC:\s*([^;]+)\s*;'),
     'time_signatures': re.compile(r'#TIMESIGNATURES:\s*0\.000=([^\n;]+)\s*;'),
     'tick_counts': re.compile(r'#TICKCOUNTS:\s*0\.000=([^\n;]+)\s*;')
