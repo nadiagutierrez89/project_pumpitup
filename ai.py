@@ -14,7 +14,7 @@ from keras.preprocessing.image import load_img, img_to_array
 
 
 IMAGE_SIZE = 64
-BEATS_PER_SGRAM = 20
+STEPS_PER_SGRAM = 20
 
 
 def load_single_sgram(sgram_image_path):
@@ -48,7 +48,7 @@ def load_sgrams_and_steps(sgrams_images_path, steps_csv_path):
 
     # TODO load outputs from a csv, this is just an example using fake data
     steps = np.array([
-        ([1] * BEATS_PER_SGRAM) if "pared" in image_path.name else ([0] * BEATS_PER_SGRAM)
+        ([1] * STEPS_PER_SGRAM) if "pared" in image_path.name else ([0] * STEPS_PER_SGRAM)
         for image_path in sorted_images
     ])
 
@@ -89,7 +89,7 @@ def build_and_train_neural_network(sgrams, steps, test_split=0.2, train_epochs=5
         Dense(100, activation="tanh"),
         Dropout(0.25),
 
-        Dense(BEATS_PER_SGRAM, activation="sigmoid"),
+        Dense(STEPS_PER_SGRAM, activation="sigmoid"),
     ])
 
     neural_network.compile(
