@@ -2,6 +2,7 @@ import os
 os.environ["KERAS_BACKEND"] = "jax"
 
 import json
+import pickle
 from collections import namedtuple
 from pathlib import Path
 
@@ -158,3 +159,20 @@ class PumpIA:
         print(predictions)
         print("Raw prediction:")
         print(raw_predictions)
+
+    def save(self, file_path):
+        """
+        Save the whole trained model and related info into a file.
+        """
+        with open(file_path, "wb") as dump_file:
+            pickle.dump(self, dump_file)
+
+    @classmethod
+    def load(cls, file_path):
+        """
+        Load the whole trained model and related info from a file.
+        """
+        with open(file_path, "rb") as dump_file:
+            instance = pickle.load(dump_file)
+
+        return instance
