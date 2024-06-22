@@ -19,7 +19,7 @@ Dataset = namedtuple("Dataset", "sgrams steps output_steps_per_sgram")
 
 
 SGRAMS_ROOT = Path("./sgrams")
-INPUT_IMAGE_SIZE = 64, 64
+REDUCE_IMAGES_TO = 64, 64
 
 
 def load_single_sgram(sgram_image_path):
@@ -31,7 +31,7 @@ def load_single_sgram(sgram_image_path):
     return img_to_array(
         load_img(
             sgram_image_path,
-            target_size=(INPUT_IMAGE_SIZE[0], INPUT_IMAGE_SIZE[1]),
+            target_size=(REDUCE_IMAGES_TO[0], REDUCE_IMAGES_TO[1]),
             color_mode="grayscale",
         )
     ) / 255
@@ -89,7 +89,7 @@ def build_and_train_neural_network(dataset, test_split=0.2, train_epochs=5):
     )
 
     neural_network = Sequential([
-        Input((INPUT_IMAGE_SIZE[0], INPUT_IMAGE_SIZE[1], 1)),
+        Input((REDUCE_IMAGES_TO[0], REDUCE_IMAGES_TO[1], 1)),
 
         Convolution2D(filters=10, kernel_size=(4, 4), strides=1, activation="relu"),
         Dropout(0.25),
