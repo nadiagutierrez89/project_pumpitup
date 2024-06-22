@@ -129,15 +129,19 @@ class PumpIA:
             validation_data=(test_sgrams, test_steps),
         )
 
-    def predict(self, sgram_path):
+    def predict(self, sgram_path, raw=False):
         """
-        Load a spectrogram and predict its steps. Returns both the final and the raw predictions.
+        Load a spectrogram and predict its steps. If raw=True, the raw not-rounded predictions
+        are returned.
         Raw predictions are only useful for debugging, while the final predictions are the steps
         we should use for the game.
         """
         inputs = np.array([self.load_single_sgram(sgram_path)])  # un "dataset" con solo esa imagen
-        predictions = self.neural_network.predict(inputs)
-        return predictions.round(), predictions
+        predictions = self.neural_network.predict(inputs)[0]
+        if not raw:
+            predictions = "".join(str(digit) for digit in predictions.round().astype(int))
+
+        return predictions
 
 
     def show_and_predict(self, sgram_path):
@@ -148,7 +152,8 @@ class PumpIA:
         inputs = np.array([self.load_single_sgram(sgram_path)])
         self.show_sgrams(inputs)
 
-        predictions, raw_predictions = self.predict(sgram_path)
+        predictions = self.predict(sgram_path)
+        raw_predictions = self.predict(sgram_path, raw=True)
         print("Prediction:")
         print(predictions)
         print("Raw prediction:")
