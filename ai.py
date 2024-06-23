@@ -5,6 +5,7 @@ import json
 import pickle
 from collections import namedtuple
 from pathlib import Path
+from random import sample
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -42,7 +43,7 @@ class PumpIA:
             )
         ) / 255
 
-    def load_dataset(self, dataset_json_path, train_sgrams_root_path):
+    def load_dataset(self, dataset_json_path, train_sgrams_root_path, sample_size=None):
         """
         Load the input spectrogram images and output steps from the files.
         Sgrams (spectrograms) are the inputs for the neural network, while steps are the outputs.
@@ -51,13 +52,34 @@ class PumpIA:
         self.train_sgrams_root_path = Path(train_sgrams_root_path)
 
         with open(dataset_json_path, "r") as dataset_file:
-            dataset_config = json.load(dataset_file)
+            self.dataset_config = json.load(dataset_file)
 
         # sort them to then generate inputs and outputs in synced order
         sorted_sgrams = list(sorted(
             sgram_name
-            for sgram_name in dataset_config["sgrams_with_steps"]
+            for sgram_name in self.dataset_config["sgrams_with_steps"]
         ))
+
+        # filter the ones that exist
+        print("Dataset contains", len(sorted_sgrams), "spectrograms")
+        sorted_sgrams = [
+            sgram_name
+            for sgram_name in self.dataset_config["sgrams_with_steps"]
+            if (self.train_sgrams_root_path / sgram_name).exists()
+        ]
+        print("Only", len(sorted_sgrams), "spectrograms exist in the images directory")
+
+        # filter ones with bad output data
+        sorted_sgrams = [
+            sgram_name
+            for sgram_name in sorted_sgrams
+            if all(digit.isnumeric() for digit in self.dataset_config["sgrams_with_steps"][sgram_name])
+        ]
+        print("Left", len(sorted_sgrams), "spectrograms after removing ones with bad steps")
+
+        if sample_size and sample_size < len(sorted_sgrams):
+            print("Selected", sample_size, "samples from the dataset")
+            sorted_sgrams = sample(sorted_sgrams, sample_size)
 
         print("Reading spectrogram images...")
         self.sgrams = np.array([
@@ -66,13 +88,13 @@ class PumpIA:
         ])
 
         self.steps = np.array([
-            [int(digit)
-             for digit in dataset_config["sgrams_with_steps"][sgram_name]]
+            [int(digit.replace("2", "1").replace("3", "1"))
+             for digit in self.dataset_config["sgrams_with_steps"][sgram_name]]
             for sgram_name in sorted_sgrams
         ])
         print("Loaded", len(self.sgrams), "spectrograms")
 
-        self.output_steps_per_sgram = dataset_config["output_steps_per_sgram"]
+        self.output_steps_per_sgram = self.dataset_config["output_steps_per_sgram"]
 
     def show_sgrams(self, sgrams=None, sample=None):
         """
@@ -118,7 +140,7 @@ class PumpIA:
 
         self.neural_network.compile(
             optimizer="adam",
-            loss="binary_crossentropy",
+            loss="categorical_crossentropy",
             metrics=["binary_accuracy",],
         )
 
@@ -150,6 +172,7 @@ class PumpIA:
         Utility to test predictions in a jupyter notebook, showing the spectrogram and the predicted
         steps.
         """
+        sgram_path = Path(sgram_path)
         inputs = np.array([self.load_single_sgram(sgram_path)])
         self.show_sgrams(inputs)
 
@@ -159,6 +182,8 @@ class PumpIA:
         print(predictions)
         print("Raw prediction:")
         print(raw_predictions)
+        print("Real steps:")
+        print(self.dataset_config["sgrams_with_steps"].get(sgram_path.name, "unknown"))
 
     def save(self, file_path):
         """
