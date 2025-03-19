@@ -50,7 +50,7 @@ def process_ssc_file(file_path):
                 if match_notes:
                     notes_block = match_notes.group(1)
                     # Verificar si el bloque de notas contiene caracteres no deseados
-                    if '|' in notes_block or '}' in notes_block:
+                    if '|' in notes_block or '}' in notes_block or 'M' in notes_block:
                         fields['notes'] = 'Notas con simbolos'
                     else:
                         # Eliminar líneas que contienen la palabra "measure"
